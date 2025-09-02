@@ -1,12 +1,19 @@
 import streamlit as st
+from pytube import Search, YouTube
 import gspread
 from google.oauth2.service_account import Credentials
-from pytube import Search, YouTube
 import time
 
 # ---------- Autenticação usando Streamlit Secrets ----------
 service_account_info = st.secrets["gcp_service_account"]
-credentials = Credentials.from_service_account_info(service_account_info)
+
+# Usar os escopos corretos
+scopes = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+credentials = Credentials.from_service_account_info(service_account_info, scopes=scopes)
 client = gspread.authorize(credentials)
 
 # Abrir a planilha
@@ -32,7 +39,7 @@ def buscar_video(musica):
     search = Search(musica)
     video = search.results[0]
     yt = YouTube(video.watch_url)
-    return yt.watch_url, yt.length
+    return yt.watch_url, yt.length  # retorna URL e duração em segundos
 
 # ---------- Interface ----------
 st.title("🎵 Player Contínuo com Fila Compartilhada")
@@ -66,7 +73,7 @@ if not st.session_state.tocando and fila_atual:
                 video_url, duracao = buscar_video(proxima)
                 st.success(f"Tocando: {proxima}")
                 st.video(video_url)
-                time.sleep(duracao + 1)
+                time.sleep(duracao + 1)  # espera o tempo real do vídeo
             except Exception:
                 st.error(f"Não foi possível tocar '{proxima}'.")
         else:
