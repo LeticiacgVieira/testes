@@ -1,26 +1,33 @@
 import streamlit as st
-import json
-import os
+import requests
+from bs4 import BeautifulSoup
 
-ARQUIVO = "musicas.json"
+def buscar_youtube(musica):
+    query = musica.replace(" ", "+")
+    url = f"https://www.youtube.com/results?search_query={query}"
+    
+    r = requests.get(url).text
+    soup = BeautifulSoup(r, "html.parser")
 
-def salvar_musica(musica):
-    if os.path.exists(ARQUIVO):
-        with open(ARQUIVO, "r") as f:
-            dados = json.load(f)
-    else:
-        dados = []
+    # Pega primeiro vídeo disponível
+    for link in soup.find_all("a"):
+        href = link.get("href")
+        if href and "/watch?v=" in href:
+            return f"https://www.youtube.com{href}"
+    return None
 
-    dados.append(musica)
-
-    with open(ARQUIVO, "w") as f:
-        json.dump(dados, f)
-
-st.title("🎵 Registrar música")
+# Interface do Streamlit
+st.title("🎵 Player de Música Online")
 
 musica = st.text_input("Digite o nome da música:")
 
-if st.button("Salvar"):
-    if musica.strip() != "":
-        salvar_musica(musica)
-        st.success(f"Música '{musica}' registrada com sucesso!")
+if st.button("Tocar Música"):
+    if musica.strip():
+        with st.spinner("Buscando vídeo no YouTube..."):
+            video_url = buscar_youtube(musica)
+        
+        if video_url:
+            st.success("Música encontrada! 🎶")
+            st.video(video_url)  # exibe o vídeo diretamente
+        else:
+            st.error("Não foi possível encontrar o vídeo.")
