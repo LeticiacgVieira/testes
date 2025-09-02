@@ -1,14 +1,16 @@
 import streamlit as st
-from pytube import Search, YouTube
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
+from pytube import Search, YouTube
 import time
 
-# ---------- Configuração Google Sheets ----------
-scope = ["https://spreadsheets.google.com/feeds","https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open("FilaMusicas").sheet1  # nome do Sheet
+# ---------- Autenticação usando Streamlit Secrets ----------
+service_account_info = st.secrets["gcp_service_account"]
+credentials = Credentials.from_service_account_info(service_account_info)
+client = gspread.authorize(credentials)
+
+# Abrir a planilha
+sheet = client.open("FilaMusicas").sheet1
 
 # ---------- Funções ----------
 def adicionar_fila(musica):
@@ -30,7 +32,7 @@ def buscar_video(musica):
     search = Search(musica)
     video = search.results[0]
     yt = YouTube(video.watch_url)
-    return yt.watch_url, yt.length  # retorna URL e duração em segundos
+    return yt.watch_url, yt.length
 
 # ---------- Interface ----------
 st.title("🎵 Player Contínuo com Fila Compartilhada")
@@ -64,8 +66,7 @@ if not st.session_state.tocando and fila_atual:
                 video_url, duracao = buscar_video(proxima)
                 st.success(f"Tocando: {proxima}")
                 st.video(video_url)
-                # Espera a duração do vídeo antes de tocar o próximo
-                time.sleep(duracao + 1)  # +1 segundo de segurança
+                time.sleep(duracao + 1)
             except Exception:
                 st.error(f"Não foi possível tocar '{proxima}'.")
         else:
