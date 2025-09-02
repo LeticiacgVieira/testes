@@ -1,5 +1,5 @@
 import streamlit as st
-from pytube import Search
+from pytube import Search, YouTube
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import time
@@ -26,13 +26,14 @@ def ver_fila():
     lista = sheet.get_all_values()
     return [item[0] for item in lista]
 
-def buscar_youtube(musica):
+def buscar_video(musica):
     search = Search(musica)
     video = search.results[0]
-    return video.watch_url
+    yt = YouTube(video.watch_url)
+    return yt.watch_url, yt.length  # retorna URL e duração em segundos
 
 # ---------- Interface ----------
-st.title("🎵 Player de Música Online Contínuo")
+st.title("🎵 Player Contínuo com Fila Compartilhada")
 
 # Adicionar música
 musica = st.text_input("Digite o nome da música:")
@@ -59,13 +60,14 @@ if not st.session_state.tocando and fila_atual:
     while True:
         proxima = pegar_proxima()
         if proxima:
-            with st.spinner(f"Tocando '{proxima}'..."):
-                try:
-                    video_url = buscar_youtube(proxima)
-                    st.video(video_url)
-                    time.sleep(5)  # espera o tempo aproximado do vídeo
-                except Exception:
-                    st.error(f"Não foi possível tocar '{proxima}'.")
+            try:
+                video_url, duracao = buscar_video(proxima)
+                st.success(f"Tocando: {proxima}")
+                st.video(video_url)
+                # Espera a duração do vídeo antes de tocar o próximo
+                time.sleep(duracao + 1)  # +1 segundo de segurança
+            except Exception:
+                st.error(f"Não foi possível tocar '{proxima}'.")
         else:
             st.info("Fila vazia. Adicione mais músicas!")
             st.session_state.tocando = False
