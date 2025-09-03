@@ -37,9 +37,11 @@ def ver_fila():
 
 def buscar_video(musica):
     search = Search(musica)
+    if not search.results:
+        return None, None  # Nenhum vídeo encontrado
     video = search.results[0]
     yt = YouTube(video.watch_url)
-    return yt.watch_url, yt.length  # retorna URL e duração em segundos
+    return yt.watch_url, yt.length
 
 # ---------- Interface ----------
 st.title("🎵 Player Contínuo com Fila Compartilhada")
