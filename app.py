@@ -5,7 +5,7 @@ from google.oauth2.service_account import Credentials
 import time
 
 # ---------- CONFIGURAÇÃO ----------
-SHEET_ID = "SEU_ID_DA_PLANILHA_AQUI"
+SHEET_ID = "1ROB_zfZjpSPyaMuLOix5m146RDvkAiAoqPYuc4zNNN8"
 
 # ---------- Autenticação usando Streamlit Secrets ----------
 service_account_info = st.secrets["gcp_service_account"]
