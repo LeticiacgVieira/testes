@@ -6,7 +6,7 @@ import time
 
 # ---------- CONFIGURAÇÃO ----------
 # Substitua pelo ID da sua planilha no Google Sheets
-SHEET_ID = "SEU_ID_DA_PLANILHA_AQUI"
+SHEET_ID = "FilaMusicas"
 
 # ---------- Autenticação usando Streamlit Secrets ----------
 service_account_info = st.secrets["gcp_service_account"]
