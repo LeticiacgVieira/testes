@@ -4,10 +4,13 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 
+# ---------- CONFIGURAÇÃO ----------
+# Substitua pelo ID da sua planilha no Google Sheets
+SHEET_ID = "SEU_ID_DA_PLANILHA_AQUI"
+
 # ---------- Autenticação usando Streamlit Secrets ----------
 service_account_info = st.secrets["gcp_service_account"]
 
-# Usar os escopos corretos
 scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -16,8 +19,8 @@ scopes = [
 credentials = Credentials.from_service_account_info(service_account_info, scopes=scopes)
 client = gspread.authorize(credentials)
 
-# Abrir a planilha
-sheet = client.open("FilaMusicas").sheet1
+# Abrir a planilha pelo ID
+sheet = client.open_by_key(SHEET_ID).sheet1
 
 # ---------- Funções ----------
 def adicionar_fila(musica):
@@ -41,7 +44,7 @@ def buscar_video(musica):
         return None, None  # Nenhum vídeo encontrado
     video = search.results[0]
     yt = YouTube(video.watch_url)
-    return yt.watch_url, yt.length
+    return yt.watch_url, yt.length  # URL e duração em segundos
 
 # ---------- Interface ----------
 st.title("🎵 Player Contínuo com Fila Compartilhada")
@@ -52,8 +55,11 @@ if st.button("Adicionar à fila"):
     if musica.strip():
         adicionar_fila(musica)
         st.success(f"Música '{musica}' adicionada à fila!")
+        # Atualiza fila e força checagem do player
+        fila_atual = ver_fila()
+        st.session_state.tocando = False
 
-# Mostra fila
+# Mostrar fila
 st.subheader("Fila atual:")
 fila_atual = ver_fila()
 if fila_atual:
@@ -66,18 +72,22 @@ else:
 if "tocando" not in st.session_state:
     st.session_state.tocando = False
 
-if not st.session_state.tocando and fila_atual:
+# Inicia player se houver música e não estiver tocando
+if fila_atual and not st.session_state.tocando:
     st.session_state.tocando = True
     while True:
         proxima = pegar_proxima()
         if proxima:
+            video_url, duracao = buscar_video(proxima)
+            if video_url is None:
+                st.error(f"Não foi possível encontrar nenhum vídeo para '{proxima}'.")
+                continue  # passa para a próxima música
             try:
-                video_url, duracao = buscar_video(proxima)
                 st.success(f"Tocando: {proxima}")
                 st.video(video_url)
                 time.sleep(duracao + 1)  # espera o tempo real do vídeo
             except Exception:
-                st.error(f"Não foi possível tocar '{proxima}'.")
+                st.error(f"Erro ao tocar '{proxima}'.")
         else:
             st.info("Fila vazia. Adicione mais músicas!")
             st.session_state.tocando = False
