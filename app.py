@@ -30,7 +30,10 @@ def pegar_proxima():
     lista = sheet.get_all_values()
     if lista:
         proxima = lista[0][0]
-        sheet.delete_row(1)
+        sheet.batch_update([{
+            'range': '1:1',  # primeira linha
+            'values': [[]]   # limpa a linha
+        }])
         return proxima
     return None
 
