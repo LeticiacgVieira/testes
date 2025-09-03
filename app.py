@@ -30,9 +30,10 @@ def pegar_proxima():
     lista = sheet.get_all_values()
     if lista:
         proxima = lista[0][0]
+        # Apaga a primeira linha corretamente
         sheet.batch_update([{
-            'range': '1:1',  # primeira linha
-            'values': [[]]   # limpa a linha
+            'range': '1:1',
+            'values': [[''] * len(lista[0])]  # mantém o número de colunas
         }])
         return proxima
     return None
