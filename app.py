@@ -5,8 +5,7 @@ from google.oauth2.service_account import Credentials
 import time
 
 # ---------- CONFIGURAÇÃO ----------
-# Substitua pelo ID da sua planilha no Google Sheets
-SHEET_ID = "1ROB_zfZjpSPyaMuLOix5m146RDvkAiAoqPYuc4zNNN8"
+SHEET_ID = "SEU_ID_DA_PLANILHA_AQUI"
 
 # ---------- Autenticação usando Streamlit Secrets ----------
 service_account_info = st.secrets["gcp_service_account"]
@@ -19,7 +18,6 @@ scopes = [
 credentials = Credentials.from_service_account_info(service_account_info, scopes=scopes)
 client = gspread.authorize(credentials)
 
-# Abrir a planilha pelo ID
 sheet = client.open_by_key(SHEET_ID).sheet1
 
 # ---------- Funções ----------
@@ -27,41 +25,37 @@ def adicionar_fila(musica):
     sheet.append_row([musica])
 
 def pegar_proxima():
-    lista = sheet.get_all_values()
-    if lista:
-        proxima = lista[0][0]
-        # Apaga a primeira linha corretamente
-        sheet.batch_update([{
-            'range': '1:1',
-            'values': [[''] * len(lista[0])]  # mantém o número de colunas
-        }])
+    primeira_linha = sheet.row_values(1)  # pega apenas a primeira linha
+    if primeira_linha:
+        proxima = primeira_linha[0]
+        # limpa a primeira linha para "remover" a música da fila
+        sheet.update('A1', '')  # só limpa a célula
         return proxima
     return None
 
+@st.cache_data(ttl=5)
 def ver_fila():
+    """Retorna todas as músicas da fila, cache por 5 segundos."""
     lista = sheet.get_all_values()
-    return [item[0] for item in lista]
+    return [item[0] for item in lista if item]
 
 def buscar_video(musica):
     search = Search(musica)
     if not search.results:
-        return None, None  # Nenhum vídeo encontrado
+        return None, None
     video = search.results[0]
     yt = YouTube(video.watch_url)
-    return yt.watch_url, yt.length  # URL e duração em segundos
+    return yt.watch_url, yt.length
 
 # ---------- Interface ----------
-st.title("🎵 Player Contínuo com Fila Compartilhada")
+st.title("🎵 Player Contínuo Otimizado")
 
 # Adicionar música
 musica = st.text_input("Digite o nome da música:")
-if st.button("Adicionar à fila"):
-    if musica.strip():
-        adicionar_fila(musica)
-        st.success(f"Música '{musica}' adicionada à fila!")
-        # Atualiza fila e força checagem do player
-        fila_atual = ver_fila()
-        st.session_state.tocando = False
+if st.button("Adicionar à fila") and musica.strip():
+    adicionar_fila(musica)
+    st.success(f"Música '{musica}' adicionada à fila!")
+    st.session_state.tocando = False  # força checagem do player
 
 # Mostrar fila
 st.subheader("Fila atual:")
@@ -76,7 +70,6 @@ else:
 if "tocando" not in st.session_state:
     st.session_state.tocando = False
 
-# Inicia player se houver música e não estiver tocando
 if fila_atual and not st.session_state.tocando:
     st.session_state.tocando = True
     while True:
@@ -85,11 +78,11 @@ if fila_atual and not st.session_state.tocando:
             video_url, duracao = buscar_video(proxima)
             if video_url is None:
                 st.error(f"Não foi possível encontrar nenhum vídeo para '{proxima}'.")
-                continue  # passa para a próxima música
+                continue
             try:
                 st.success(f"Tocando: {proxima}")
                 st.video(video_url)
-                time.sleep(duracao + 1)  # espera o tempo real do vídeo
+                time.sleep(duracao + 1)
             except Exception:
                 st.error(f"Erro ao tocar '{proxima}'.")
         else:
